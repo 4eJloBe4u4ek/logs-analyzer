@@ -19,8 +19,16 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import lombok.experimental.UtilityClass;
 
+@UtilityClass
 public class Main {
+    private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
+    private static final String MARKDOWN_FORMAT = "markdown";
+    private static final String ADOC_FORMAT = "adoc";
+
     public static void main(String[] args) throws IOException {
         CliParams params = new CliParams();
         JCommander.newBuilder()
@@ -41,17 +49,13 @@ public class Main {
     }
 
     private static AnalyzerConfig setupAnalyzerConfig(CliParams params) {
-        Optional<String> filterField = Optional.empty();
-        Optional<String> filterValue = Optional.empty();
-        if (params.filterField().isPresent() && params.filterValue().isPresent()) {
-            filterField = params.filterField();
-            filterValue = params.filterValue();
-        }
+        Optional<String> filterField = params.filterField();
+        Optional<String> filterValue = params.filterValue();
 
         Optional<LocalDateTime> from = parseDate(params.from());
         Optional<LocalDateTime> to = parseDate(params.to());
 
-        OutputFormat format = parseOutputFormat(params.format().orElse("markdown"));
+        OutputFormat format = parseOutputFormat(params.format().orElse(MARKDOWN_FORMAT));
 
         List<Path> files = new ArrayList<>();
         Optional<String> urlString = Optional.empty();
@@ -68,7 +72,7 @@ public class Main {
 
     private static LogDataSource setupLogDataSource(AnalyzerConfig analyzerConfig) {
         return analyzerConfig.urlString().isPresent()
-            ? new UrlDataSource(analyzerConfig.urlString().get())
+            ? new UrlDataSource(analyzerConfig.urlString().orElseThrow())
             : new LocalFileDataSource(analyzerConfig.files());
     }
 
@@ -78,17 +82,24 @@ public class Main {
         }
 
         try {
-            return Optional.of(LocalDateTime.parse(dateString.get(), DateTimeFormatter.ISO_DATE_TIME));
-        } catch (DateTimeParseException e) {
-            return Optional.of(LocalDate.parse(dateString.get(), DateTimeFormatter.ISO_DATE).atStartOfDay());
+            return Optional.of(LocalDateTime.parse(dateString.orElseThrow(), DateTimeFormatter.ISO_DATE_TIME));
+        } catch (DateTimeParseException firstException) {
+            try {
+                return Optional.of(
+                    LocalDate.parse(dateString.orElseThrow(), DateTimeFormatter.ISO_DATE).atStartOfDay());
+            } catch (DateTimeParseException secondException) {
+                LOGGER.log(Level.WARNING, "Invalid date format: " + dateString);
+                return Optional.empty();
+            }
         }
     }
 
     private static OutputFormat parseOutputFormat(String format) {
-        return switch (format.toLowerCase()) {
-            case "adoc" -> OutputFormat.ADOC;
-            case "markdown" -> OutputFormat.MARKDOWN;
-            default -> OutputFormat.MARKDOWN;
-        };
+        try {
+            return OutputFormat.valueOf(format.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            LOGGER.log(Level.WARNING, "Invalid output format: " + format);
+            return OutputFormat.MARKDOWN;
+        }
     }
 }

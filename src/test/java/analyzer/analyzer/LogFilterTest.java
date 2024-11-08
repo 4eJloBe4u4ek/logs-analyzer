@@ -39,8 +39,8 @@ public class LogFilterTest {
         assertTrue(logEntry1.isPresent());
         assertTrue(logEntry2.isPresent());
 
-        assertTrue(logFilter.isWithinRange(logEntry1.get().localDateTime()));
-        assertTrue(logFilter.isWithinRange(logEntry2.get().localDateTime()));
+        assertTrue(logFilter.isWithinRange(logEntry1.orElseThrow().localDateTime()));
+        assertTrue(logFilter.isWithinRange(logEntry2.orElseThrow().localDateTime()));
     }
 
     @Test
@@ -56,8 +56,8 @@ public class LogFilterTest {
         assertTrue(logEntry1.isPresent());
         assertTrue(logEntry2.isPresent());
 
-        assertFalse(logFilter.isWithinRange(logEntry1.get().localDateTime()));
-        assertFalse(logFilter.isWithinRange(logEntry2.get().localDateTime()));
+        assertFalse(logFilter.isWithinRange(logEntry1.orElseThrow().localDateTime()));
+        assertFalse(logFilter.isWithinRange(logEntry2.orElseThrow().localDateTime()));
     }
 
     @Test
@@ -77,7 +77,7 @@ public class LogFilterTest {
         assertTrue(logEntry1.isPresent());
         assertTrue(logEntry2.isPresent());
 
-        assertTrue(logFilter.isWithinRange(logEntry1.get().localDateTime()));
-        assertTrue(logFilter.isWithinRange(logEntry2.get().localDateTime()));
+        assertTrue(logFilter.isWithinRange(logEntry1.orElseThrow().localDateTime()));
+        assertTrue(logFilter.isWithinRange(logEntry2.orElseThrow().localDateTime()));
     }
 }

@@ -48,15 +48,15 @@ public class StatisticsAggregatorTest {
     }
 
     private NginxLogEntry createLogEntry(int bodyBytesSent) {
-        return new NginxLogEntry(
-            DEFAULT_IP,
-            Optional.empty(),
-            DEFAULT_DATE,
-            DEFAULT_REQUEST,
-            STATUS_CODE,
-            bodyBytesSent,
-            Optional.empty(),
-            DEFAULT_USER_AGENT
-        );
+        return new NginxLogEntry.Builder()
+            .clientIp(DEFAULT_IP)
+            .remoteUser(Optional.empty())
+            .localDateTime(DEFAULT_DATE)
+            .request(DEFAULT_REQUEST)
+            .statusCode(STATUS_CODE)
+            .bodyBytesSent(bodyBytesSent)
+            .httpReferer(Optional.empty())
+            .httpUserAgent(DEFAULT_USER_AGENT)
+            .build();
     }
 }

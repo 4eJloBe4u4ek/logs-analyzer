@@ -10,7 +10,8 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 public class UrlDataSource implements LogDataSource {
-    private static final Logger logger = Logger.getLogger(UrlDataSource.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(UrlDataSource.class.getName());
+    private static final int OK = 200;
     private final String urlString;
 
     public UrlDataSource(String urlString) {
@@ -25,14 +26,14 @@ public class UrlDataSource implements LogDataSource {
             .build();
         try {
             HttpResponse<Stream<String>> response = client.send(request, HttpResponse.BodyHandlers.ofLines());
-            if (response.statusCode() != 200) {
-                logger.log(Level.WARNING,
+            if (response.statusCode() != OK) {
+                LOGGER.log(Level.WARNING,
                     "Failed to fetch data from " + urlString + ". Response code: " + response.statusCode());
                 return Stream.empty();
             }
             return response.body();
         } catch (IOException | InterruptedException e) {
-            logger.log(Level.WARNING, "Error processing URL " + urlString + ": " + e.getMessage());
+            LOGGER.log(Level.WARNING, "Error processing URL " + urlString + ": " + e.getMessage());
             return Stream.empty();
         }
     }

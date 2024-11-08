@@ -18,13 +18,13 @@ public class NginxLogEntryTest {
         Optional<NginxLogEntry> logEntry = NginxLogEntry.parseNginxLogEntry(logEntryString);
 
         assertTrue(logEntry.isPresent());
-        assertEquals("93.180.71.3", logEntry.get().clientIP());
-        assertEquals(LocalDateTime.parse("2015-05-17T08:05:32"), logEntry.get().localDateTime());
-        assertEquals("GET /downloads/product_1 HTTP/1.1", logEntry.get().request());
-        assertEquals(304, logEntry.get().statusCode());
-        assertEquals("Debian APT-HTTP/1.3 (0.8.16~exp12ubuntu10.21)", logEntry.get().httpUserAgent());
-        assertEquals(Optional.empty(), logEntry.get().remoteUser());
-        assertEquals(Optional.empty(), logEntry.get().httpReferer());
+        assertEquals("93.180.71.3", logEntry.orElseThrow().clientIP());
+        assertEquals(LocalDateTime.parse("2015-05-17T08:05:32"), logEntry.orElseThrow().localDateTime());
+        assertEquals("GET /downloads/product_1 HTTP/1.1", logEntry.orElseThrow().request());
+        assertEquals(304, logEntry.orElseThrow().statusCode());
+        assertEquals("Debian APT-HTTP/1.3 (0.8.16~exp12ubuntu10.21)", logEntry.orElseThrow().httpUserAgent());
+        assertEquals(Optional.empty(), logEntry.orElseThrow().remoteUser());
+        assertEquals(Optional.empty(), logEntry.orElseThrow().httpReferer());
     }
 
     @ParameterizedTest

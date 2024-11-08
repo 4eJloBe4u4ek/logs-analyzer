@@ -1,5 +1,6 @@
 package analyzer.analyzer;
 
+import analyzer.model.NginxLogEntry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -7,11 +8,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import analyzer.model.NginxLogEntry;
 import lombok.Getter;
 
 @Getter
 public class StatisticsAggregator {
+    private static final double PERCENT_BASE = 100.;
     private final List<Integer> responseSizes;
     private final Map<Integer, Integer> logStatusCodes;
     private final Map<String, Integer> resources;
@@ -29,8 +30,8 @@ public class StatisticsAggregator {
 
     public void addLogEntry(NginxLogEntry entry) {
         addStatusCode(entry.statusCode());
-        addResource(entry.extractResource().orElse("Resource not found"));
-        addHttpMethod(entry.extractHttpMethod());
+        addResource(entry.resource().orElse("Resource not found"));
+        addHttpMethod(entry.httpMethod().orElse("Http method not found"));
         addIpAddress(entry.clientIP());
 
         responseSizes.add(entry.bodyBytesSent());
@@ -59,7 +60,7 @@ public class StatisticsAggregator {
         }
 
         Collections.sort(responseSizes);
-        int index = (int) (Math.ceil((percentile / 100.0) * responseSizes.size()) - 1);
+        int index = (int) (Math.ceil((percentile / PERCENT_BASE) * responseSizes.size()) - 1);
         return responseSizes.get(index);
     }
 
@@ -95,9 +96,8 @@ public class StatisticsAggregator {
             .collect(Collectors.toMap(
                 Map.Entry::getKey,
                 Map.Entry::getValue,
-                (e1, _) -> e1,
+                (e1, e2) -> e1,
                 LinkedHashMap::new
             ));
     }
-
 }

@@ -78,6 +78,7 @@ public class AnalyzerConfig {
 
     private static final Path MARKDOWN_PATH = Path.of("src/main/resources/statistics.md");
     private static final Path ADOC_PATH = Path.of("src/main/resources/statistics.adoc");
+    private static final int MAX_LENGTH_URL = 30;
 
     private final Optional<LocalDateTime> from;
     private final Optional<LocalDateTime> to;
@@ -119,11 +120,10 @@ public class AnalyzerConfig {
 
     public String getDataSourceAsString() {
         if (urlString.isPresent()) {
-            String url = urlString.get();
-            int maxLength = 30;
-            if (url.length() > maxLength) {
-                return "URL: `" + url.substring(0, maxLength / 2) + "..." +
-                    url.substring(url.length() - maxLength / 2) + '`';
+            String url = urlString.orElseThrow();
+            if (url.length() > MAX_LENGTH_URL) {
+                return "URL: `" + url.substring(0, MAX_LENGTH_URL / 2) + "..."
+                    + url.substring(url.length() - MAX_LENGTH_URL / 2) + '`';
             } else {
                 return "URL: " + url;
             }

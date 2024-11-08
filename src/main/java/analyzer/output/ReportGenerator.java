@@ -13,6 +13,14 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class ReportGenerator {
+    private static final int TOP_ENTRIES_LIMIT = 10;
+    private static final int PERCENTILE_95 = 95;
+    private static final String BYTE_SUFFIX = "b";
+    private static final String HEADER_MARKDOWN = "#### ";
+    private static final String HEADER_ADOC = "==== ";
+    private static final String ADOC_TABLE_BORDER = "|===";
+    private static final String COLUMN_NAME_COUNT = "Количество";
+
     private final AnalyzerConfig analyzerConfig;
     private final StatisticsAggregator statisticsAggregator;
 
@@ -43,7 +51,7 @@ public class ReportGenerator {
     }
 
     private void addSection(List<String> lines, String title, List<String> data, OutputFormat format) {
-        addSelectionHeader(lines, title, format);
+        addSectionHeader(lines, title, format);
         lines.addAll(data);
         lines.add("\n");
     }
@@ -56,24 +64,24 @@ public class ReportGenerator {
             new String[] {"Конечная дата", analyzerConfig.to().map(LocalDateTime::toString).orElse("-")},
             new String[] {"Количество запросов", formatNumber(statisticsAggregator.totalRequests())},
             new String[] {"Средний размер ответа",
-                formatNumberWithUnderscores(statisticsAggregator.getAverageResponseSize(), "b")},
+                formatNumberWithUnderscores(statisticsAggregator.getAverageResponseSize(), BYTE_SUFFIX)},
             new String[] {"95p размера ответа",
-                formatNumberWithUnderscores(statisticsAggregator.getPercentileResponseSize(95), "b")}
+                formatNumberWithUnderscores(statisticsAggregator.getPercentileResponseSize(PERCENTILE_95), BYTE_SUFFIX)}
         ));
     }
 
     private List<String> generateResourcesTable() {
         List<String[]> data = new ArrayList<>();
-        data.add(new String[] {"Ресурс", "Количество"});
-        statisticsAggregator.getTopResources(10)
+        data.add(new String[] {"Ресурс", COLUMN_NAME_COUNT});
+        statisticsAggregator.getTopResources(TOP_ENTRIES_LIMIT)
             .forEach((key, value) -> data.add(new String[] {'`' + key + '`', formatNumber(value)}));
         return generateTable(data);
     }
 
     private List<String> generateStatusCodesTable() {
         List<String[]> data = new ArrayList<>();
-        data.add(new String[] {"Код", "Имя", "Количество"});
-        statisticsAggregator.getTopStatusCodes(10).forEach((key, value) -> {
+        data.add(new String[] {"Код", "Имя", COLUMN_NAME_COUNT});
+        statisticsAggregator.getTopStatusCodes(TOP_ENTRIES_LIMIT).forEach((key, value) -> {
             String statusName = analyzerConfig.getStatusDescription(key);
             data.add(new String[] {String.valueOf(key), statusName, formatNumber(value)});
         });
@@ -82,34 +90,36 @@ public class ReportGenerator {
 
     private List<String> generateHttpMethodsTable() {
         List<String[]> data = new ArrayList<>();
-        data.add(new String[] {"Метод", "Количество"});
-        statisticsAggregator.getTopHttpMethods(10)
+        data.add(new String[] {"Метод", COLUMN_NAME_COUNT});
+        statisticsAggregator.getTopHttpMethods(TOP_ENTRIES_LIMIT)
             .forEach((key, value) -> data.add(new String[] {'`' + key + '`', formatNumber(value)}));
         return generateTable(data);
     }
 
     private List<String> generateIpTable() {
         List<String[]> data = new ArrayList<>();
-        data.add(new String[] {"IP-адрес", "Количество"});
-        statisticsAggregator.getTopIpAddresses(10)
+        data.add(new String[] {"IP-адрес", COLUMN_NAME_COUNT});
+        statisticsAggregator.getTopIpAddresses(TOP_ENTRIES_LIMIT)
             .forEach((key, value) -> data.add((new String[] {key, formatNumber(value)})));
         return generateTable(data);
     }
 
-    private void addSelectionHeader(List<String> lines, String title, OutputFormat format) {
+    private void addSectionHeader(List<String> lines, String title, OutputFormat format) {
         switch (format) {
-            case MARKDOWN -> lines.add("#### " + title);
-            case ADOC -> {
-                lines.add("==== " + title);
-                lines.add("|===");
-            }
+            case MARKDOWN -> lines.add(HEADER_MARKDOWN + title);
+            case ADOC -> lines.add(HEADER_ADOC + title);
+            default -> lines.add(HEADER_MARKDOWN + title);
         }
     }
 
     private List<String> generateTable(List<String[]> data) {
-        List<String> table = new ArrayList<>();
+        List<String> table = new ArrayList<>(data.size());
         int[] columnWidths = getMaxColumnWidths(data);
         OutputFormat format = analyzerConfig.format();
+
+        if (format == OutputFormat.ADOC) {
+            table.add(ADOC_TABLE_BORDER);
+        }
 
         String headerFormat = Arrays.stream(columnWidths)
             .mapToObj(width -> "| %-" + width + "s ")
@@ -131,7 +141,7 @@ public class ReportGenerator {
         }
 
         if (format == OutputFormat.ADOC) {
-            table.add("|===");
+            table.add(ADOC_TABLE_BORDER);
         }
 
         return table;

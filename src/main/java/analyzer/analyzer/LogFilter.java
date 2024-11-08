@@ -15,11 +15,11 @@ public class LogFilter {
     public boolean isWithinRange(LocalDateTime dateTime) {
         boolean withinFromRange = analyzerConfig.from()
             .map(date -> !dateTime.isBefore(date))
-            .orElse(true);
+            .orElse(Boolean.TRUE);
 
         boolean withinToRange = analyzerConfig.to()
             .map(date -> !dateTime.isAfter(date))
-            .orElse(true);
+            .orElse(Boolean.TRUE);
 
         return withinFromRange && withinToRange;
     }
@@ -29,11 +29,11 @@ public class LogFilter {
             return true;
         }
 
-        String actualFilterValue = switch (analyzerConfig.filterField().get().toLowerCase()) {
+        String actualFilterValue = switch (analyzerConfig.filterField().orElseThrow().toLowerCase()) {
             case "agent" -> entry.httpUserAgent();
             case "status" -> String.valueOf(entry.statusCode());
-            case "resource" -> entry.extractResource().orElse(null);
-            case "method" -> entry.extractHttpMethod();
+            case "resource" -> entry.resource().orElse(null);
+            case "method" -> entry.httpMethod().orElse(null);
             case "ip" -> entry.clientIP();
             default -> null;
         };
@@ -42,7 +42,7 @@ public class LogFilter {
             return false;
         }
 
-        String filterValue = analyzerConfig.filterValue().get();
+        String filterValue = analyzerConfig.filterValue().orElseThrow();
         String regex = filterValue.replace("*", ".*");
         Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
         return pattern.matcher(actualFilterValue).matches();
