@@ -2,7 +2,6 @@ package analyzer.model;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -14,11 +13,7 @@ import lombok.Getter;
 @Getter
 public class NginxLogEntry {
     private static final Logger LOGGER = Logger.getLogger(NginxLogEntry.class.getName());
-    private static final int MIN_STATUS_CODE = 100;
-    private static final int MAX_STATUS_CODE = 599;
-    private static final int MIN_IP_OCTET = 0;
-    private static final int MAX_IP_OCTET = 255;
-    private static final int IPV4_PARTS = 4;
+
     private static final int GROUP_CLIENT_IP = 1;
     private static final int GROUP_REMOTE_USER = 3;
     private static final int GROUP_LOCAL_TIME = 4;
@@ -27,6 +22,7 @@ public class NginxLogEntry {
     private static final int GROUP_BODY_BYTES_SENT = 7;
     private static final int GROUP_HTTP_REFERER = 8;
     private static final int GROUP_HTTP_USER_AGENT = 9;
+
     private static final String CLIENT_IP = "(\\S+)\\s+";
     private static final String HYPHEN = "(-)\\s+";
     private static final String REMOTE_USER = CLIENT_IP;
@@ -51,17 +47,18 @@ public class NginxLogEntry {
             + HTTP_REFERER
             + HTTP_USER_AGENT
             + "$");
+    private static final Pattern RESOURCE_PATTERN = Pattern.compile("\\S+\\s(\\S+)\\sHTTP/\\d\\.\\d");
 
     private final String clientIP;
-    private final Optional<String> remoteUser;
+    private final String remoteUser;
     private final LocalDateTime localDateTime;
     private final String request;
     private final int statusCode;
     private final int bodyBytesSent;
-    private final Optional<String> httpReferer;
+    private final String httpReferer;
     private final String httpUserAgent;
-    private final Optional<String> httpMethod;
-    private final Optional<String> resource;
+    private final String httpMethod;
+    private final String resource;
 
     private NginxLogEntry(Builder builder) {
         this.clientIP = builder.clientIP;
@@ -80,120 +77,25 @@ public class NginxLogEntry {
         Matcher matcher = LOG_PATTERN.matcher(logEntry);
 
         if (!matcher.matches()) {
-            logWarning("The log entry does not include all parameters: " + logEntry);
+            logWarning("Log entry does not match the expected format: " + logEntry);
             return Optional.empty();
         }
 
         try {
             return Optional.of(new Builder()
-                .clientIp(validateIP(matcher.group(GROUP_CLIENT_IP)).orElseThrow())
-                .remoteUser(validateRemoteUser(matcher.group(GROUP_REMOTE_USER)))
-                .localDateTime(validateLocalTime(matcher.group(GROUP_LOCAL_TIME)).orElseThrow())
-                .request(validateRequest(matcher.group(GROUP_REQUEST)).orElseThrow())
-                .statusCode(validateStatusCode(matcher.group(GROUP_STATUS_CODE)).orElseThrow())
-                .bodyBytesSent(validateBodyBytesSent(matcher.group(GROUP_BODY_BYTES_SENT)).orElseThrow())
-                .httpReferer(validateHttpReferer(matcher.group(GROUP_HTTP_REFERER)))
-                .httpUserAgent(validateUserAgent(matcher.group(GROUP_HTTP_USER_AGENT)).orElseThrow())
+                .clientIp(matcher.group(GROUP_CLIENT_IP))
+                .remoteUser(matcher.group(GROUP_REMOTE_USER))
+                .localDateTime(LocalDateTime.parse(matcher.group(GROUP_LOCAL_TIME), NGINX_DATE_FORMATTER))
+                .request(matcher.group(GROUP_REQUEST))
+                .statusCode(Integer.parseInt(matcher.group(GROUP_STATUS_CODE)))
+                .bodyBytesSent(Integer.parseInt(matcher.group(GROUP_BODY_BYTES_SENT)))
+                .httpReferer(matcher.group(GROUP_HTTP_REFERER))
+                .httpUserAgent(matcher.group(GROUP_HTTP_USER_AGENT))
                 .build());
         } catch (Exception e) {
+            logWarning("Error parsing log entry: " + logEntry);
             return Optional.empty();
         }
-    }
-
-    private static Optional<String> validateIP(String clientIP) {
-        Pattern ipPattern = Pattern.compile("(?:[0-9]{1,3}\\.){3}[0-9]{1,3}|[a-fA-F0-9:]+");
-        Matcher matcher = ipPattern.matcher(clientIP);
-        String message = "Invalid request client IP address: " + clientIP;
-
-        if (!matcher.find()) {
-            logWarning(message);
-            return Optional.empty();
-        }
-
-        String[] values = clientIP.split("\\.");
-        if (values.length == IPV4_PARTS) {
-            for (String value : values) {
-                if (Integer.parseInt(value) < MIN_IP_OCTET || Integer.parseInt(value) > MAX_IP_OCTET) {
-                    logWarning(message);
-                    return Optional.empty();
-                }
-            }
-        }
-
-        return Optional.of(clientIP);
-    }
-
-    private static Optional<String> validateRemoteUser(String remoteUser) {
-        if ("-".equals(remoteUser)) {
-            return Optional.empty();
-        } else {
-            return Optional.of(remoteUser);
-        }
-    }
-
-    private static Optional<LocalDateTime> validateLocalTime(String localDateTime) {
-        try {
-            return Optional.of(LocalDateTime.parse(localDateTime, NGINX_DATE_FORMATTER));
-        } catch (DateTimeParseException e) {
-            logWarning("Invalid local time: " + localDateTime);
-            return Optional.empty();
-        }
-    }
-
-    private static Optional<String> validateRequest(String request) {
-        if (!request.matches("(GET|POST|PUT|DELETE|HEAD|CONNECT|OPTIONS|TRACE|PATCH) [^ ]+ HTTP/\\d\\.\\d")) {
-            logWarning("Invalid HTTP type request: " + request);
-            return Optional.empty();
-        }
-
-        return Optional.of(request);
-    }
-
-    private static Optional<Integer> validateStatusCode(String statusCode) {
-        String message = "Invalid HTTP server response code: " + statusCode;
-        try {
-            int code = Integer.parseInt(statusCode);
-            if (code < MIN_STATUS_CODE || code > MAX_STATUS_CODE) {
-                logWarning(message);
-                return Optional.empty();
-            }
-            return Optional.of(code);
-        } catch (NumberFormatException e) {
-            logWarning(message);
-            return Optional.empty();
-        }
-    }
-
-    private static Optional<Integer> validateBodyBytesSent(String bodyBytesSent) {
-        String message = "Invalid size in bytes of the server response: " + bodyBytesSent;
-        try {
-            int bytesSent = Integer.parseInt(bodyBytesSent);
-            if (bytesSent < 0) {
-                logWarning(message);
-                return Optional.empty();
-            }
-            return Optional.of(bytesSent);
-        } catch (NumberFormatException e) {
-            logWarning(message);
-            return Optional.empty();
-        }
-    }
-
-    private static Optional<String> validateHttpReferer(String httpReferer) {
-        if ("-".equals(httpReferer)) {
-            return Optional.empty();
-        } else {
-            return Optional.of(httpReferer);
-        }
-    }
-
-    private static Optional<String> validateUserAgent(String httpUserAgent) {
-        if (httpUserAgent == null || httpUserAgent.isBlank()) {
-            logWarning("Invalid HTTP user agent: " + httpUserAgent);
-            return Optional.empty();
-        }
-
-        return Optional.of(httpUserAgent);
     }
 
     private static void logWarning(String message) {
@@ -202,22 +104,22 @@ public class NginxLogEntry {
 
     public static class Builder {
         private String clientIP;
-        private Optional<String> remoteUser;
+        private String remoteUser;
         private LocalDateTime localDateTime;
         private String request;
         private int statusCode;
         private int bodyBytesSent;
-        private Optional<String> httpReferer;
+        private String httpReferer;
         private String httpUserAgent;
-        private Optional<String> httpMethod;
-        private Optional<String> resource;
+        private String httpMethod;
+        private String resource;
 
         public Builder clientIp(String clientIP) {
             this.clientIP = clientIP;
             return this;
         }
 
-        public Builder remoteUser(Optional<String> remoteUser) {
+        public Builder remoteUser(String remoteUser) {
             this.remoteUser = remoteUser;
             return this;
         }
@@ -229,8 +131,11 @@ public class NginxLogEntry {
 
         public Builder request(String request) {
             this.request = request;
-            this.httpMethod = extractHttpMethod(request);
+
+            this.httpMethod = request.split(" ")[0];
+
             this.resource = extractResource(request);
+
             return this;
         }
 
@@ -244,7 +149,7 @@ public class NginxLogEntry {
             return this;
         }
 
-        public Builder httpReferer(Optional<String> httpReferer) {
+        public Builder httpReferer(String httpReferer) {
             this.httpReferer = httpReferer;
             return this;
         }
@@ -258,23 +163,13 @@ public class NginxLogEntry {
             return new NginxLogEntry(this);
         }
 
-        private Optional<String> extractHttpMethod(String request) {
-            int spaceIndex = request.indexOf(' ');
-            if (spaceIndex == -1) {
-                NginxLogEntry.logWarning("Http method not found in request: " + request);
-                return Optional.empty();
-            }
-            return Optional.of(request.substring(0, spaceIndex));
-        }
-
-        private Optional<String> extractResource(String request) {
-            Pattern resourcePattern = Pattern.compile("\\S+\\s(\\S+)\\sHTTP/\\d\\.\\d");
-            Matcher matcher = resourcePattern.matcher(request);
+        private String extractResource(String request) {
+            Matcher matcher = RESOURCE_PATTERN.matcher(request);
             if (matcher.find()) {
-                return Optional.of(matcher.group(1));
+                return matcher.group(1);
             } else {
-                NginxLogEntry.logWarning("Resource not found in request: " + request);
-                return Optional.empty();
+                logWarning("Resource not found in request: " + request);
+                return "Unknown Resource";
             }
         }
     }

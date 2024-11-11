@@ -32,8 +32,8 @@ public class LogFilter {
         String actualFilterValue = switch (analyzerConfig.filterField().orElseThrow().toLowerCase()) {
             case "agent" -> entry.httpUserAgent();
             case "status" -> String.valueOf(entry.statusCode());
-            case "resource" -> entry.resource().orElse(null);
-            case "method" -> entry.httpMethod().orElse(null);
+            case "resource" -> entry.resource();
+            case "method" -> entry.httpMethod();
             case "ip" -> entry.clientIP();
             default -> null;
         };

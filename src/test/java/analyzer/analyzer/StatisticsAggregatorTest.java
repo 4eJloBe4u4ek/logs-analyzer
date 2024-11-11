@@ -2,7 +2,6 @@ package analyzer.analyzer;
 
 import analyzer.model.NginxLogEntry;
 import java.time.LocalDateTime;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -15,6 +14,7 @@ public class StatisticsAggregatorTest {
     private static final String DEFAULT_USER_AGENT = "Debian APT-HTTP/1.3 (0.8.16~exp12ubuntu10.21)";
     private static final String DEFAULT_REQUEST = "GET /downloads/product_1 HTTP/1.1";
     private static final int STATUS_CODE = 200;
+    private static final String EMPTY = "";
 
     @BeforeEach
     public void setUp() {
@@ -50,12 +50,12 @@ public class StatisticsAggregatorTest {
     private NginxLogEntry createLogEntry(int bodyBytesSent) {
         return new NginxLogEntry.Builder()
             .clientIp(DEFAULT_IP)
-            .remoteUser(Optional.empty())
+            .remoteUser(EMPTY)
             .localDateTime(DEFAULT_DATE)
             .request(DEFAULT_REQUEST)
             .statusCode(STATUS_CODE)
             .bodyBytesSent(bodyBytesSent)
-            .httpReferer(Optional.empty())
+            .httpReferer(EMPTY)
             .httpUserAgent(DEFAULT_USER_AGENT)
             .build();
     }

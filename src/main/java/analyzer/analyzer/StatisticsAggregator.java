@@ -30,8 +30,8 @@ public class StatisticsAggregator {
 
     public void addLogEntry(NginxLogEntry entry) {
         addStatusCode(entry.statusCode());
-        addResource(entry.resource().orElse("Resource not found"));
-        addHttpMethod(entry.httpMethod().orElse("Http method not found"));
+        addResource(entry.resource());
+        addHttpMethod(entry.httpMethod());
         addIpAddress(entry.clientIP());
 
         responseSizes.add(entry.bodyBytesSent());
