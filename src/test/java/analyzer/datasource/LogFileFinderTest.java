@@ -38,7 +38,7 @@ public class LogFileFinderTest {
 
     @Test
     public void findLogFiles() {
-        String path = "test/resources/*.log";
+        String path = "**/src/test/resources/*.log";
         LogFileFinder fileFinder = new LogFileFinder(path);
         List<Path> foundFiles;
 
@@ -50,7 +50,7 @@ public class LogFileFinderTest {
 
     @Test
     public void findLogFilesTestWithSpecificFile() {
-        String path = "test/resources/log.txt";
+        String path = "**/src/test/resources/log.txt";
         LogFileFinder fileFinder = new LogFileFinder(path);
         List<Path> foundFiles;
 
@@ -63,7 +63,7 @@ public class LogFileFinderTest {
 
     @Test
     public void findLogFilesTestWithNoFile() {
-        String path = "test/resources/someFile.someFile";
+        String path = "**/src/test/resources/someFile.someFile";
         LogFileFinder fileFinder = new LogFileFinder(path);
         List<Path> foundFiles;
 

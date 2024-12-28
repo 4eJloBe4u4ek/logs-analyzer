@@ -9,6 +9,8 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 
 @Getter
 public class NginxLogEntry {
@@ -83,7 +85,7 @@ public class NginxLogEntry {
 
         try {
             return Optional.of(new Builder()
-                .clientIp(matcher.group(GROUP_CLIENT_IP))
+                .clientIP(matcher.group(GROUP_CLIENT_IP))
                 .remoteUser(matcher.group(GROUP_REMOTE_USER))
                 .localDateTime(LocalDateTime.parse(matcher.group(GROUP_LOCAL_TIME), NGINX_DATE_FORMATTER))
                 .request(matcher.group(GROUP_REQUEST))
@@ -102,6 +104,8 @@ public class NginxLogEntry {
         LOGGER.log(Level.WARNING, message);
     }
 
+    @Accessors(chain = true)
+    @Setter
     public static class Builder {
         private String clientIP;
         private String remoteUser;
@@ -114,53 +118,20 @@ public class NginxLogEntry {
         private String httpMethod;
         private String resource;
 
-        public Builder clientIp(String clientIP) {
-            this.clientIP = clientIP;
-            return this;
-        }
-
-        public Builder remoteUser(String remoteUser) {
-            this.remoteUser = remoteUser;
-            return this;
-        }
-
-        public Builder localDateTime(LocalDateTime localDateTime) {
-            this.localDateTime = localDateTime;
-            return this;
-        }
-
         public Builder request(String request) {
             this.request = request;
-
-            this.httpMethod = request.split(" ")[0];
-
+            this.httpMethod = extractHttpMethod(request);
             this.resource = extractResource(request);
 
             return this;
         }
 
-        public Builder statusCode(int statusCode) {
-            this.statusCode = statusCode;
-            return this;
-        }
-
-        public Builder bodyBytesSent(int bodyBytesSent) {
-            this.bodyBytesSent = bodyBytesSent;
-            return this;
-        }
-
-        public Builder httpReferer(String httpReferer) {
-            this.httpReferer = httpReferer;
-            return this;
-        }
-
-        public Builder httpUserAgent(String httpUserAgent) {
-            this.httpUserAgent = httpUserAgent;
-            return this;
-        }
-
         public NginxLogEntry build() {
             return new NginxLogEntry(this);
+        }
+
+        private String extractHttpMethod(String request) {
+            return request.split(" ")[0];
         }
 
         private String extractResource(String request) {

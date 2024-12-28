@@ -49,7 +49,7 @@ public class StatisticsAggregatorTest {
 
     private NginxLogEntry createLogEntry(int bodyBytesSent) {
         return new NginxLogEntry.Builder()
-            .clientIp(DEFAULT_IP)
+            .clientIP(DEFAULT_IP)
             .remoteUser(EMPTY)
             .localDateTime(DEFAULT_DATE)
             .request(DEFAULT_REQUEST)
